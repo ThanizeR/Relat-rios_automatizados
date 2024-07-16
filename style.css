@@ -1,0 +1,9 @@
+.chart-container {
+    border: 2px solid #4caf4f4f; /* Cor da borda verde */
+    padding: 10px; /* Espaçamento interno para separação */
+    margin-bottom: 20px; /* Espaçamento entre gráficos */
+    width: 100%; /* Largura total do contêiner */
+    height: 300px; /* Altura fixa dos gráficos */
+    overflow: hidden; /* Para cortar qualquer conteúdo que ultrapasse a área */
+    border-radius: 4px;
+}
