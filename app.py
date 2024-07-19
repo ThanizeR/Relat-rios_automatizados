@@ -17,6 +17,7 @@ from reportlab.lib.pagesizes import landscape, A4
 from reportlab.pdfgen import canvas
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import plotly.io as pio
+from reportlab.lib.colors import black
 
 st.set_page_config("📊Análise de Trabalho", page_icon="", layout="wide")
 
@@ -37,64 +38,88 @@ def load_data(file, file_type, encoding='utf-8'):
 #st.sidebar.title('Selecione a página:')
 #pagina_selecionada = st.sidebar.radio("Selecione a página:", ("Tratores", "Pulverizadores", "Colheitadeira"))
 
-# Título na barra lateral
-#st.sidebar.title('Selecione a página:')
-
-def generate_pdf(df_tractors, figures, background_image_path=None):
+def generate_pdf(df_tractors, figures, donut_figures, background_image_first_page=None, background_image_other_pages=None):
     pdf_buffer = BytesIO()
     c = canvas.Canvas(pdf_buffer, pagesize=A4)
 
-    if background_image_path:
-        background = ImageReader(background_image_path)
-        c.drawImage(background, 0, 0, width=A4[0], height=A4[1])
-
     page_width, page_height = A4
     x_margin = 35
-    y_margin = 5
-    header_space = 100
+    y_margin = 20
+    header_space_first_page = 100
+    header_space_other_pages = 25
 
-    graph_height = (page_height - 1 * y_margin - header_space) / 2
-    # Inserir os dados do arquivo de tratores no início do PDF
+    # Diminuir um pouco mais a largura e altura dos gráficos
+    graph_width = page_width - 2 * x_margin - 10
+    graph_height_first_page = (page_height - 2 * y_margin - header_space_first_page) / 2 - 12
+    graph_height_other_pages = (page_height - 2 * y_margin - header_space_other_pages) / 2 - 12
+    graph_height_donut = (page_height - 2 * y_margin - header_space_other_pages) / 4 - 12
+
+    def set_background(page_num):
+        if page_num == 0 and background_image_first_page:
+            background = ImageReader(background_image_first_page)
+        elif background_image_other_pages:
+            background = ImageReader(background_image_other_pages)
+        else:
+            return
+        c.drawImage(background, 0, 0, width=A4[0], height=A4[1])
+
+    page_num = 0
+    set_background(page_num)
+
     if 'Data de Início' in df_tractors.columns and 'Data Final' in df_tractors.columns and 'Organização' in df_tractors.columns:
         data_inicio = pd.to_datetime(df_tractors['Data de Início'].iloc[0])
         data_final = pd.to_datetime(df_tractors['Data Final'].iloc[0])
         organizacao = df_tractors['Organização'].iloc[0]
 
-        # Ajustar o tamanho da fonte e dividir em três linhas
-        c.setFont("Helvetica", 10)
-        dados_texto = f"Organização:\n{organizacao}\n\nData de Início:\n{data_inicio.strftime('%d/%m/%Y')}\n\nData Final:\n{data_final.strftime('%d/%m/%Y')}"
-        c.drawString(x_margin, page_height - y_margin - header_space, dados_texto)
+        c.setFont("Helvetica-Bold", 8)  # Definir texto em negrito e tamanho 12
+        c.setFillColorRGB(1, 1, 1)  # Definir a cor do texto como branca
+        y_position = page_height - y_margin - 5  # Ajustar a posição do texto no cabeçalho
 
-    for i, fig in enumerate(figures):
-        if not isinstance(fig, plt.Figure):
-            print(f"Skipping non-Matplotlib figure: {type(fig)}")
-            continue
+        # Desenhar organização e datas em três linhas
+        c.drawString(x_margin, y_position, f"Organização: {organizacao}")
+        y_position -= 15  # Espaçamento entre linhas
+        c.drawString(x_margin, y_position, f"Data de Início: {data_inicio.strftime('%d/%m/%Y')}")
+        y_position -= 15  # Espaçamento entre linhas
+        c.drawString(x_margin, y_position, f"Data Final: {data_final.strftime('%d/%m/%Y')}")
 
-        if i % 2 == 0 and i != 0:
-            c.showPage()
-            if background_image_path:
-                c.drawImage(background, 0, 0, width=A4[0], height=A4[1])
+    def draw_figures(figures, graph_height, per_page):
+        nonlocal y_position, page_num
+        for i, fig in enumerate(figures):
+            if isinstance(fig, plt.Figure):
+                img_data = BytesIO()
+                fig.savefig(img_data, format='png', bbox_inches='tight')
+                img_data.seek(0)
+            elif isinstance(fig, bytes):
+                img_data = BytesIO(fig)
+                img_data.seek(0)
+            else:
+                print(f"Skipping non-supported figure type: {type(fig)}")
+                continue
 
-        img_data = BytesIO()
-        fig.savefig(img_data, format='png', bbox_inches='tight')
-        img_data.seek(0)
+            if i % per_page == 0 and i != 0:
+                c.showPage()
+                page_num += 1
+                set_background(page_num)
+                y_position = page_height - y_margin - header_space_other_pages
 
-        row = i % 2
-        if row == 0:
-            y_position = page_height - y_margin - (row + 1) * (graph_height + y_margin + header_space)
-        else:
-            y_position = page_height - y_margin - (row + 1) * (graph_height + y_margin)
+            x_position = x_margin
+            c.drawImage(ImageReader(img_data), x_position, y_position - graph_height, width=graph_width, height=graph_height)
+            y_position -= graph_height + y_margin / 2
 
-        x_position = x_margin
+    y_position = page_height - y_margin - header_space_first_page
+    draw_figures(figures, graph_height_first_page, 2)
 
-        c.drawImage(ImageReader(img_data), x_position, y_position, width=fig.get_size_inches()[0] * 53, height=fig.get_size_inches()[1] * 45)
+    draw_figures(donut_figures, graph_height_donut, 4)
 
     c.showPage()
     c.save()
     pdf_buffer.seek(0)
     return pdf_buffer
-# Caminho para a imagem de fundo na mesma pasta dos códigos
-background_image_path = 'background_pdf.jpg'
+
+
+# Caminho para as imagens de fundo
+background_image_first_page = 'background_pdf_first_page.jpg'
+background_image_other_pages = 'background_pdf_other_pages.jpg'
 
 # Menu dropdown na barra superior
 selected = option_menu(
@@ -496,11 +521,11 @@ if selected == "🌱Tratores":
             ]
 
             # Cores e rótulos para o gráfico de rosca
-            colors = ['tab:blue', 'tab:red', 'tab:green', 'tab:pink', 'tab:cyan','tab:orange', 'tab:brown', 'tab:gray', 'tab:olive', 'tab:purple']
+            colors = ['tab:blue', 'tab:red', 'tab:green', 'tab:pink', 'tab:cyan', 'tab:orange', 'tab:brown', 'tab:gray', 'tab:olive', 'tab:purple']
             labels = ['0,00–2,00% (h)', '2,01–4,00% (h)', '4,01–6,00% (h)', '6,01–8,00% (h)', '8,01–10,00% (h)', '10,01–12,00% (h)', '12,01–14,00% (h)', '14,01–16,00% (h)', '16,01–18,00% (h)', '18,01–100,00% (h)']
 
             # Preparar os dados e criar gráficos de rosca (donut chart) para cada máquina
-            cols = st.columns(4) 
+            cols = st.columns(4)
             col_index = 0
 
             for index, row in df_tractors.iterrows():
@@ -531,7 +556,7 @@ if selected == "🌱Tratores":
                     marker=dict(colors=colors[:len(donut_data)]),  # Usar cores definidas para o gráfico
                     textposition='inside'
                 )])
-                
+
                 # Adicionar o nome da máquina no centro do gráfico de rosca
                 fig_maq.add_annotation(
                     text=maquina,
@@ -553,7 +578,7 @@ if selected == "🌱Tratores":
 
             ##############################################################################################################
 
-            # Definir colunas para análise de patinagem
+            # # Definir colunas para análise de patinagem
             selected_columns_patinagem2 = [
                 "Máquina", 
                 "Tempo de Patinagem das Rodas no Nível 0,00–2,00% (h)",
@@ -613,15 +638,71 @@ if selected == "🌱Tratores":
             ax_patinagem2.legend(by_label2.values(), by_label2.keys(), loc='upper right', bbox_to_anchor=(1.25, 1.0))
 
             st.pyplot(fig_patinagem3)
-            
             #########################################################################################################
 
             if st.button('Gerar PDF para Tratores'):
-                figures = [df_tractors, fig_utilizacao, fig_fator, fig_combust, fig_rotacao, fig_hrmotor,fig_desloc, fig_maq, fig_patinagem3]  
-                pdf_buffer = generate_pdf(df_tractors, figures, background_image_path)
-                st.download_button('Baixar PDF', pdf_buffer, file_name='graficos_tratores.pdf', mime='application/pdf')
+                factors = [
+                    'Tempo de Patinagem das Rodas no Nível 0,00–2,00% (h)',
+                    'Tempo de Patinagem das Rodas no Nível 2,01–4,00% (h)',
+                    'Tempo de Patinagem das Rodas no Nível 4,01–6,00% (h)',
+                    'Tempo de Patinagem das Rodas no Nível 6,01–8,00% (h)',
+                    'Tempo de Patinagem das Rodas no Nível 8,01-10,00% (h)',
+                    'Tempo de Patinagem das Rodas no Nível 10,01–12,00% (h)',
+                    'Tempo de Patinagem das Rodas no Nível 12,01–14,00% (h)',
+                    'Tempo de Patinagem das Rodas no Nível 14,01–16,00% (h)',
+                    'Tempo de Patinagem das Rodas no Nível 16,01–18,00% (h)',
+                    'Tempo de Patinagem das Rodas no Nível 18,01–100,00% (h)'
+                ]
 
+                colors = ['tab:blue', 'tab:red', 'tab:green', 'tab:pink', 'tab:cyan','tab:orange', 'tab:brown', 'tab:gray', 'tab:olive', 'tab:purple']
 
+                donut_figures = []
+
+                for index, row in df_tractors.iterrows():
+                    maquina = row['Máquina']
+                    donut_data = row[factors]
+                    donut_data = donut_data[donut_data != 0]
+
+                    if donut_data.empty:
+                        st.write(f"Dados zerados para {maquina}, máquina sem informações presentes.")
+                        continue
+
+                    donut_data = donut_data.apply(lambda x: round(x, 1))
+                    donut_labels = [factors[i] for i in range(len(donut_data))]
+
+                    fig_maq = go.Figure(data=[go.Pie(
+                        labels=donut_labels,
+                        values=donut_data,
+                        textinfo='value',
+                        hole=0.5,
+                        marker=dict(colors=colors[:len(donut_data)]),
+                        textposition='inside'
+                    )])
+
+                    fig_maq.add_annotation(
+                        text=maquina,
+                        x=0.5,
+                        y=0.5,
+                        font=dict(size=20),
+                        showarrow=False
+                    )
+
+                    fig_maq.update_layout(
+                        title='',
+                        showlegend=False
+                    )
+
+                    img_bytes = fig_maq.to_image(format="png")
+                    donut_figures.append(img_bytes)
+
+                figures = [fig_utilizacao, fig_fator, fig_combust, fig_rotacao, fig_hrmotor, fig_desloc, fig_patinagem3]
+                pdf_buffer = generate_pdf(df_tractors, figures, donut_figures, background_image_first_page, background_image_other_pages)
+                st.download_button(
+                    label="Baixar PDF",
+                    data=pdf_buffer,
+                    file_name="relatorio.pdf",
+                    mime="application/pdf"
+                )
 # Lógica para Pulverizadores
 elif selected == "🌱Pulverizadores":
     st.subheader("Pulverizadores")
