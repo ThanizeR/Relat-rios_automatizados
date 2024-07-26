@@ -70,9 +70,9 @@ def generate_pdf(df_tractors, figures, background_image_first_page=None, backgro
         data_final = pd.to_datetime(df_tractors['Data Final'].iloc[0])
         organizacao = df_tractors['Organização'].iloc[0]
 
-        c.setFont("Helvetica-Bold", 11)  # Definir texto em negrito e tamanho 12
+        c.setFont("Helvetica-Bold", 10)  # Definir texto em negrito e tamanho 12
         c.setFillColorRGB(1, 1, 1)  # Definir a cor do texto como branca
-        y_position = page_height - y_margin - 3  # Ajustar a posição do texto no cabeçalho
+        y_position = page_height - y_margin - 2  # Ajustar a posição do texto no cabeçalho
 
         # Desenhar organização e datas em três linhas
         c.drawString(x_margin, y_position, f"Organização: {organizacao}")
@@ -497,83 +497,8 @@ if selected == "🌱Tratores":
 
             col9.pyplot(fig_desloc)
 
-            ###################################################################################################
-            col10, col11 = st.columns(2)
-            col12, col13 = st.columns(2)
-                # Lista de fatores e cores específicas
-            factors = [
-                'Tempo de Patinagem das Rodas no Nível 0,00–2,00% (h)',
-                'Tempo de Patinagem das Rodas no Nível 2,01–4,00% (h)',
-                'Tempo de Patinagem das Rodas no Nível 4,01–6,00% (h)',
-                'Tempo de Patinagem das Rodas no Nível 6,01–8,00% (h)',
-                'Tempo de Patinagem das Rodas no Nível 8,01-10,00% (h)',
-                'Tempo de Patinagem das Rodas no Nível 10,01–12,00% (h)',
-                'Tempo de Patinagem das Rodas no Nível 12,01–14,00% (h)',
-                'Tempo de Patinagem das Rodas no Nível 14,01–16,00% (h)',
-                'Tempo de Patinagem das Rodas no Nível 16,01–18,00% (h)',
-                'Tempo de Patinagem das Rodas no Nível 18,01–100,00% (h)'
-            ]
-
-            # Cores e rótulos para o gráfico de rosca
-            colors = ['tab:blue', 'tab:red', 'tab:green', 'tab:pink', 'tab:cyan', 'tab:orange', 'tab:brown', 'tab:gray', 'tab:olive', 'tab:purple']
-            labels = ['0,00–2,00% (h)', '2,01–4,00% (h)', '4,01–6,00% (h)', '6,01–8,00% (h)', '8,01–10,00% (h)', '10,01–12,00% (h)', '12,01–14,00% (h)', '14,01–16,00% (h)', '16,01–18,00% (h)', '18,01–100,00% (h)']
-
-            # Preparar os dados e criar gráficos de rosca (donut chart) para cada máquina
-            cols = st.columns(4)
-            col_index = 0
-
-            for index, row in df_tractors.iterrows():
-                maquina = row['Máquina']
-
-                # Selecionar os dados na ordem especificada
-                donut_data = row[factors]
-                # Remover valores zero
-                donut_data = donut_data[donut_data != 0]
-
-                # Verificar se todos os valores são zero
-                if donut_data.empty:
-                    st.write(f"Dados zerados para {maquina}, máquina sem informações presentes.")
-                    continue
-
-                # Formatar os valores para ter uma casa decimal
-                donut_data = donut_data.apply(lambda x: round(x, 1))
-
-                # Ajustar os labels para corresponder aos dados filtrados
-                donut_labels = [factors[i] for i in range(len(donut_data))]
-
-                # Criar o gráfico de rosca (donut chart) usando Plotly Graph Objects
-                fig_maq = go.Figure(data=[go.Pie(
-                    labels=donut_labels,
-                    values=donut_data,
-                    textinfo='value',
-                    hole=0.5,  # Criar um donut chart com um buraco no centro
-                    marker=dict(colors=colors[:len(donut_data)]),  # Usar cores definidas para o gráfico
-                    textposition='inside'
-                )])
-
-                # Adicionar o nome da máquina no centro do gráfico de rosca
-                fig_maq.add_annotation(
-                    text=maquina,
-                    x=0.5,
-                    y=0.5,
-                    font=dict(size=20),
-                    showarrow=False
-                )
-
-                # Configurar o layout do gráfico
-                fig_maq.update_layout(
-                    title='',
-                    showlegend=False
-                )
-
-                # Exibir o gráfico na coluna apropriada
-                cols[col_index].plotly_chart(fig_maq)
-                col_index = (col_index + 1) % 4  # Alternar entre as colunas
-
-            ##############################################################################################################
-
-            # # Definir colunas para análise de patinagem
-            selected_columns_patinagem2 = [
+            ################################################################
+            selected_columns_patinagem3 = [
                 "Máquina", 
                 "Tempo de Patinagem das Rodas no Nível 0,00–2,00% (h)",
                 "Tempo de Patinagem das Rodas no Nível 2,01–4,00% (h)",
@@ -587,55 +512,64 @@ if selected == "🌱Tratores":
                 "Tempo de Patinagem das Rodas no Nível 18,01–100,00% (h)"
             ]
 
-            df_selected_tractors_patinagem2 = df_tractors[selected_columns_patinagem2].copy()
+            df_selected_tractors_patinagem3 = df_tractors[selected_columns_patinagem3].copy()
 
             # Manter linhas com NaN para visualização em branco
-            df_selected_tractors_patinagem2.replace([np.inf, -np.inf], np.nan, inplace=True)
+            df_selected_tractors_patinagem3.replace([np.inf, -np.inf], np.nan, inplace=True)
 
             # Nomes das máquinas e tempo de patinagem
-            maquinas_tractors_patinagem2 = df_selected_tractors_patinagem2["Máquina"]
-            patinagem_tractors2 = df_selected_tractors_patinagem2.iloc[:, 1:]
+            maquinas_tractors_patinagem3 = df_selected_tractors_patinagem3["Máquina"]
+            patinagem_tractors3 = df_selected_tractors_patinagem3.iloc[:, 1:]
 
-            # Plotar gráfico de barras horizontais para tempo de patinagem
-            fig_patinagem3, ax_patinagem2 = plt.subplots(figsize=(10, 6))
+            # Plotar gráfico de barras verticais para tempo de patinagem
+            fig_patinagem4, ax_patinagem3 = plt.subplots(figsize=(12, 8))
 
             # Cores e labels para as barras de Patinagem
-            colors_patinagem2 = ['tab:blue', 'tab:red', 'tab:green', 'tab:pink', 'tab:cyan','tab:orange', 'tab:brown', 'tab:gray', 'tab:olive', 'tab:purple']
-            labels_patinagem2 = [
-                '0,00–2,00% (h)', '2,01–4,00% (h)', '4,01–6,00% (h)', '6,01–8,00% (h)', '8,01–10,00% (h)','10,01–12,00% (h)', '12,01–14,00% (h)', '14,01–16,00% (h)', '16,01–18,00% (h)', '18,01–100,00% (h)'
+            colors_patinagem3 = ['tab:blue', 'tab:red', 'tab:green', 'tab:pink', 'tab:cyan',
+                                'tab:orange', 'tab:brown', 'tab:gray', 'tab:olive', 'tab:purple']
+            labels_patinagem3 = [
+                '0,00–2,00% (h)', '2,01–4,00% (h)', '4,01–6,00% (h)', '6,01–8,00% (h)', '8,01–10,00% (h)',
+                '10,01–12,00% (h)', '12,01–14,00% (h)', '14,01–16,00% (h)', '16,01–18,00% (h)', '18,01–100,00% (h)'
             ]
-           
-            bar_height_patinagem2 = 0.6  # Altura das barras de Patinagem
-            bar_positions_patinagem2 = np.arange(len(maquinas_tractors_patinagem2))
-            bar_width = 0.2  # Largura das barras
-            space_between_bars = 1.5  # Espaço entre as barras coloridas
 
-            for i, (maquina, row) in enumerate(zip(maquinas_tractors_patinagem2, patinagem_tractors2.values)):
-                left = 0
-                for j, (value, color) in enumerate(zip(row, colors_patinagem2)):
+            bar_width = 4  # Largura das barras
+            space_between_bars = 2  # Espaço entre as barras coloridas
+            machine_offset = 2  # Espaço entre cada máquina
+
+            for i, (maquina, row) in enumerate(zip(maquinas_tractors_patinagem3, patinagem_tractors3.values)):
+                base_position = i * (len(colors_patinagem3) * (bar_width + space_between_bars) + machine_offset)
+                sorted_row = sorted(zip(row, colors_patinagem3, labels_patinagem3), key=lambda x: x[0])
+                for j, (value, color, label) in enumerate(sorted_row):
                     if value >= 0.1 or value == 0:  # Exibe valores maiores ou iguais a 0.1, ou valores zero
-                        ax_patinagem2.barh(bar_positions_patinagem2[i], value, height=bar_height_patinagem2, left=left + j * space_between_bars, label=labels_patinagem2[j] if i == 0 else "", color=color)
-                        ax_patinagem2.text(left + value / 2 + j * space_between_bars, bar_positions_patinagem2[i], f'{value:.1f}', ha='center', va='center', color='black', fontsize=10)
-                    left += value
+                        bar_position = base_position + j * (bar_width + space_between_bars)
+                        ax_patinagem3.bar(bar_position, value, width=bar_width, label=label if i == 0 else "", color=color)
 
+            # Adicionar linhas horizontais de referência para todos os valores de y
+            max_y_value = patinagem_tractors3.values.max()
+            max_y = min(max_y_value + 5, 25) if not np.isnan(max_y_value) and not np.isinf(max_y_value) else 25  # Garantir valor máximo de 25
+            ax_patinagem3.set_ylim(0, max_y)
+
+            y_ticks = np.arange(0, max_y + 1, 1)  # Gera ticks de 1 em 1 hora
+            ax_patinagem3.set_yticks(y_ticks)
+
+            for y in y_ticks:
+                ax_patinagem3.axhline(y, color='gray', linestyle='--', linewidth=0.5)
 
             # Configurar os eixos e título
-            ax_patinagem2.set_xlabel('Tempo de Patinagem (h)')
-            ax_patinagem2.set_yticks(bar_positions_patinagem2)
-            ax_patinagem2.set_yticklabels(maquinas_tractors_patinagem2)
-            ax_patinagem2.set_xticks([])  # Remover os ticks do eixo x
-            ax_patinagem2.set_title('Tempo de Patinagem das Rodas por Máquina - Tratores')
+            ax_patinagem3.set_ylabel('Tempo de Patinagem (h)')
+            ax_patinagem3.set_xticks([i * (len(colors_patinagem3) * (bar_width + space_between_bars) + machine_offset) + (len(colors_patinagem3) * (bar_width + space_between_bars) - space_between_bars) / 2 for i in range(len(maquinas_tractors_patinagem3))])
+            ax_patinagem3.set_xticklabels(maquinas_tractors_patinagem3, rotation=45, ha='right')
+            ax_patinagem3.set_title('Tempo de Patinagem das Rodas por Máquina - Tratores')
 
-            # Adicionar legenda única para Patinagem
-            handles2, labels2 = ax_patinagem2.get_legend_handles_labels()
-            by_label2 = dict(zip(labels2, handles2))
-            ax_patinagem2.legend(by_label2.values(), by_label2.keys(), loc='upper right', bbox_to_anchor=(1.25, 1.0))
+            # Adicionar legenda única para Patinagem na ordem correta
+            handles3, labels3 = zip(*sorted(zip(ax_patinagem3.get_legend_handles_labels()[0], labels_patinagem3), key=lambda x: labels_patinagem3.index(x[1])))
+            ax_patinagem3.legend(handles3, labels_patinagem3, loc='upper right', bbox_to_anchor=(1.25, 1.0))
 
-            st.pyplot(fig_patinagem3)
+            st.pyplot(fig_patinagem4)
             #########################################################################################################
 
             if st.button('Gerar PDF para Tratores'):
-                        figures = [ fig_utilizacao, fig_fator, fig_combust, fig_rotacao, fig_hrmotor,fig_desloc, fig_patinagem3]  
+                        figures = [ fig_utilizacao, fig_fator, fig_combust, fig_rotacao, fig_hrmotor,fig_desloc, fig_patinagem4, fig_patinagem3]  
                         pdf_buffer = generate_pdf( df_tractors, figures, background_image_first_page, background_image_other_pages)
                         st.download_button(
                             label="Baixar PDF",
